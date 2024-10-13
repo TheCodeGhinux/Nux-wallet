@@ -173,6 +173,13 @@ export const loginUser = async (
     };
 
     const token = jwt.sign(payload, jwtSecret, { expiresIn: '2d' });
+    const cookieExpiry: number = parseInt(process.env.COOKIE_EXPIRY || '0', 10);
+
+    const cookieToken = res.cookie('access_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: cookieExpiry
+    });
 
     const userWithoutPassword = {
       id: user.id,
@@ -195,4 +202,5 @@ export const loginUser = async (
   } catch (error) {
     next(error);
   }
+
 };

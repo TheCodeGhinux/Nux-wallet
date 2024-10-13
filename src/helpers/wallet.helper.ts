@@ -49,6 +49,33 @@ export const findWalletByAcoountNumber = async (accountNumber: string) => {
   }
 };
 
+// Function to find user by wallet ID
+export const findUserByWalletId = async (walletId: string) => {
+  try {
+    // Fetch the wallet associated with the given walletId
+    const wallet = await knex('wallets')
+      .select('user_id')
+      .where('id', walletId)
+      .first();
+
+    // If no wallet found, return null or throw an error
+    if (!wallet) {
+      return null;
+    }
+
+    // Fetch the user associated with the user_id from the wallet
+    const user = await knex('users')
+      .select('*')
+      .where('id', wallet.user_id)
+      .first();
+
+    return user;
+  } catch (error) {
+    console.error('Error fetching user by wallet ID:', error);
+    throw error;
+  }
+}
+
 export const generateAccountNumber = async (): Promise<string> => {
   let accountNumber: string;
   let isUnique = false;
