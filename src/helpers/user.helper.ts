@@ -1,20 +1,28 @@
-import { PrismaClient } from '@prisma/client'
-import { BadRequestError } from '../middlewares'
+import { PrismaClient } from '@prisma/client';
+import { BadRequestError, NotFoundError } from '../middlewares';
 import knex from '../db/db';
 
-
-const prisma = new PrismaClient()
-
-
+const prisma = new PrismaClient();
 
 export const getUserById = async (id: string) => {
-  return await knex
-    .select()
-    .from('users')
-    .where('id', id)
-    .then((user) => {
-      return user[0];
-    });
+  try {
+    const user = await knex
+      .select()
+      .from('users')
+      .where('id', id)
+      .then((user) => {
+        return user[0];
+      });
+
+    if (!user) {
+      return null;
+    }
+
+    return user;
+  } catch (error) {
+    console.error(`Error finding user with id ${id}: `, error);
+    throw new Error('Unable to fetch user');
+  }
 };
 
 export const fieldValidation = (requiredFields, fieldDisplayNames, data) => {
@@ -30,5 +38,5 @@ export const fieldValidation = (requiredFields, fieldDisplayNames, data) => {
 
     throw new BadRequestError(errorMessage);
   }
-  return
+  return;
 };

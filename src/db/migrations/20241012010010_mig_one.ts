@@ -6,16 +6,20 @@ import transactionLogSchema from '../schemas/TransLog';
 import transactionsSchema from '../schemas/TransactionSchema';
 import walletSchema from '../schemas/WalletSchema';
 import userProfileSchema from '../schemas/UserProfileSchema';
+import withdrawalSchema from '../schemas/WithdrawalSchema';
+import depositSchema from '../schemas/DepositSchema';
 
 export const up = async (knex: Knex) => {
   await knex.schema
     .createTable('users', userSchema)
-    .createTable('user_profiles', userProfileSchema) 
+    .createTable('user_profiles', userProfileSchema)
     .createTable('wallets', walletSchema)
     .createTable('transactions', transactionsSchema)
     .createTable('transfers', transferSchema)
     .createTable('transaction_logs', transactionLogSchema)
-    .createTable('audit_logs', auditLogSchema);
+    .createTable('audit_logs', auditLogSchema)
+    .createTable('withdrawals', withdrawalSchema)
+    .createTable('deposits', depositSchema);
 };
 
 export const down = async (knex: Knex) => {
@@ -27,4 +31,6 @@ export const down = async (knex: Knex) => {
     .dropTableIfExists('wallets')
     .dropTableIfExists('user_profiles')
     .dropTableIfExists('users')
+    .dropTableIfExists('withdrawals')
+    .dropTableIfExists('deposits');
 };

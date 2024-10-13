@@ -29,22 +29,28 @@ export const userWalletGuard = (
 ) => {
   const authHeader = req.headers.authorization;
   const walletId = req.params.walletId;
+  const tokenFromCookie = req.cookies?.access_token;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  let token = '';
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (tokenFromCookie) {
+    token = tokenFromCookie;
+  } else {
     return res.status(401).json({ message: 'Authorization token missing' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   jwt.verify(token, secretKey, async (err, decoded) => {
     if (err) {
       return res.status(403).json({ message: 'Invalid or expired token' });
     }
-
+    
     const user = decoded as JwtPayload;
     req.user = user;
 
     const currentUser = await getUserById(user.userId);
+    
     if (!currentUser) {
       return res.status(404).json({ message: 'User not found' });
     }

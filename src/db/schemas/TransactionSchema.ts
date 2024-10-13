@@ -1,5 +1,5 @@
-import { Knex } from "knex";
-import { addCommonFields } from "../utils/abstractEntity";
+import { Knex } from 'knex';
+import { addCommonFields } from '../utils/abstractEntity';
 
 const transactionsSchema = (table: Knex.CreateTableBuilder) => {
   addCommonFields(table);
@@ -11,6 +11,7 @@ const transactionsSchema = (table: Knex.CreateTableBuilder) => {
     .references('id')
     .inTable('wallets')
     .onDelete('CASCADE');
+  table.uuid('operation_id');
 };
 
 export default transactionsSchema;
