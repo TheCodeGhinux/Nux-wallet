@@ -2,7 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { getUserById } from '../helpers/user.helper';
-import { findWalletById, findWalletByUserId } from '../helpers/wallet.helper';
+import {
+  findWalletByAcoountNumber,
+  findWalletById,
+  findWalletByUserId,
+} from '../helpers/wallet.helper';
 
 dotenv.config();
 
@@ -28,7 +32,7 @@ export const userWalletGuard = (
   next: NextFunction
 ) => {
   const authHeader = req.headers.authorization;
-  const walletId = req.params.walletId;
+  const identifier = req.params.identifier;
   const tokenFromCookie = req.cookies?.access_token;
 
   let token = '';
@@ -45,30 +49,30 @@ export const userWalletGuard = (
     if (err) {
       return res.status(403).json({ message: 'Invalid or expired token' });
     }
-    
+
     const user = decoded as JwtPayload;
     req.user = user;
 
     const currentUser = await getUserById(user.userId);
-    
     if (!currentUser) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     let wallet: Wallet;
-    if (walletId) {
-      wallet = await findWalletById(walletId);
-      if (!wallet) {
-        return res.status(404).json({ message: 'Wallet not found' });
-      }
-    } else {
+
+    // Find wallet by identifier (walletId or accountNumber)
+    if (identifier) {
+      wallet =
+        (await findWalletById(identifier)) ||
+        (await findWalletByAcoountNumber(identifier));
+    }
+    if (!identifier) {
       wallet = await findWalletByUserId(user.userId);
       if (!wallet) {
         return res.status(404).json({ message: 'Wallet not found' });
       }
     }
-
-    // Check if the user is either an admin or the owner of the wallet
+    // Check if user is admin or the owner of the wallet
     if (user.role !== adminRole && wallet.user_id !== user.userId) {
       return res
         .status(403)

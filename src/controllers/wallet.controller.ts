@@ -6,6 +6,8 @@ import { get } from 'http';
 import { fieldValidation, getUserById } from '../helpers/user.helper';
 import {
   findUserByWalletId,
+  findWalletByAcoountNumber,
+  findWalletById,
   findWalletByUserId,
   generateAccountNumber,
 } from '../helpers/wallet.helper';
@@ -102,8 +104,8 @@ export const transferFunds = async (
         throw new Error('Sender account not found');
       }
       fromAccountNumber = sourceAccount.account_number;
-      const sender = await getUserById(userId)
-      sender_name = sender.first_name + ' ' + sender.last_name
+      const sender = await getUserById(userId);
+      sender_name = sender.first_name + ' ' + sender.last_name;
       // Check if the source account has sufficient balance
       if (sourceAccount.balance < amount) {
         throw new Error('Insufficient balance');
@@ -117,8 +119,8 @@ export const transferFunds = async (
         throw new Error('Destination account not found');
       }
 
-      const recipient = await findUserByWalletId(toAccount.id)
-      recipient_name = recipient.first_name + ' ' + recipient.last_name
+      const recipient = await findUserByWalletId(toAccount.id);
+      recipient_name = recipient.first_name + ' ' + recipient.last_name;
       // Debit source account
       await trx('wallets')
         .where('account_number', fromAccountNumber)
@@ -214,6 +216,65 @@ export const checkWalletBalance = async (
       200,
       'Wallet Balance fetched successfully'
     );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const findWallets = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const wallets = await knex('wallets').select('*');
+    ResponseHandler.success(res, wallets, 200, 'Wallets found successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getWallet = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const identifier = req.params.identifier;
+    if (!identifier) {
+      throw new BadRequestError('Identifier is required');
+    }
+
+    // Attempt to find the wallet by id first
+    let wallet = await findWalletById(identifier);
+
+    // If no wallet is found by ID, try finding by account number
+    if (!wallet) {
+      wallet = await findWalletByAcoountNumber(identifier);
+    }
+
+    if (!wallet) {
+      throw new NotFoundError('Wallet not found');
+    }
+
+    ResponseHandler.success(res, wallet, 200, 'Wallet found successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const findUserWallet = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user['userId'];
+    const userWallet = await findWalletByUserId(userId);
+    if (!userWallet) {
+      throw new NotFoundError('User has not created wallet');
+    }
+    ResponseHandler.success(res, userWallet, 200, 'Wallet found successfully');
   } catch (error) {
     next(error);
   }
