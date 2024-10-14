@@ -42,8 +42,9 @@ export const userWalletGuard = (
   } else if (tokenFromCookie) {
     token = tokenFromCookie;
   } else {
-    return res.status(401).json({ message: 'Authorization token missing' });
+    return res.status(401).json({ message: 'Authorization token missing for user' });
   }
+  
 
   jwt.verify(token, secretKey, async (err, decoded) => {
     if (err) {
