@@ -8,13 +8,9 @@ interface Wallet {
   updated_at: Date;
 }
 
-export const findWalletByUserId = async (
-  userId: string
-) => {
+export const findWalletByUserId = async (userId: string) => {
   try {
-    const wallet = await knex('wallets')
-      .where({ user_id: userId })
-      .first();
+    const wallet = await knex('wallets').where({ user_id: userId }).first();
 
     if (!wallet) {
       return null;
@@ -28,6 +24,9 @@ export const findWalletByUserId = async (
 };
 
 export const findWalletById = async (walletId: string) => {
+  if (!walletId) {
+    throw new Error('Wallet ID is required but was not provided.');
+  }
   try {
     const wallet = await knex('wallets').where({ id: walletId }).first();
 
@@ -40,7 +39,9 @@ export const findWalletById = async (walletId: string) => {
 
 export const findWalletByAcoountNumber = async (accountNumber: string) => {
   try {
-    const wallet = await knex('wallets').where({ account_number: accountNumber }).first();
+    const wallet = await knex('wallets')
+      .where({ account_number: accountNumber })
+      .first();
 
     return wallet || null;
   } catch (error) {
@@ -74,7 +75,7 @@ export const findUserByWalletId = async (walletId: string) => {
     console.error('Error fetching user by wallet ID:', error);
     throw error;
   }
-}
+};
 
 export const generateAccountNumber = async (): Promise<string> => {
   let accountNumber: string;
