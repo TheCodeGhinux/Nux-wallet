@@ -14,6 +14,16 @@ import {
 import walletSchema from '../db/schemas/WalletSchema';
 import { v4 as uuidv4 } from 'uuid';
 
+
+interface Wallet {
+  id: string;
+  user_id: string;
+  balance: number;
+  account_number: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export const createWallet = async (
   req: Request,
   res: Response,
@@ -68,7 +78,97 @@ export const createWallet = async (
   }
 };
 
-// export const fundWallet = (req: Request, res: Response, next: NextFunction) => {}
+export const fundWallet = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { accountNumber, amount } = req.body;
+  const userId = req.user['userId'];
+  let wallet: Wallet;
+  let recipient_name: string;
+
+  if (!amount || amount <= 0) {
+    throw new BadRequestError('Deposit amount is not valid');
+  }
+  const requiredFields = ['accountNumber', 'amount'];
+
+  const fieldDisplayNames = {
+    accountNumber: 'Recipient account number',
+    amount: 'Amount',
+  };
+
+  fieldValidation(requiredFields, fieldDisplayNames, req.body);
+
+  try {
+    // Start a transaction to ensure atomicity
+    await knex.transaction(async (trx) => {
+      // Find the wallet associated with the user
+      wallet = await findWalletByAcoountNumber(accountNumber);
+
+      if (!wallet) {
+        throw new Error('Account not found');
+      }
+      const recipient = await findUserByWalletId(wallet.id);
+      recipient_name = recipient.first_name + ' ' + recipient.last_name;
+
+      // Update the wallet balance
+      await trx('wallets')
+        .where('id', wallet.id)
+        .update({
+          balance: knex.raw('balance + ?', [amount]),
+          updated_at: knex.fn.now(),
+        });
+
+      // Insert a record into the deposit table
+      const newDeposit = await trx('deposits').insert({
+        id: uuidv4(),
+        wallet_id: wallet.id,
+        account_number: wallet.account_number,
+        amount,
+        created_at: knex.fn.now(),
+      });
+      const [deposit] = await trx('deposits')
+        .where({
+          wallet_id: wallet.id,
+          account_number: wallet.account_number,
+          amount: amount,
+        })
+        .select('id')
+        .orderBy('created_at', 'desc')
+        .limit(1);
+      console.log('depositId: ', deposit.id);
+
+      // Insert the transaction into the transactions table
+      await trx('transactions').insert({
+        id: deposit.id,
+        type: 'DEPOSIT',
+        amount: amount,
+        status: 'SUCCESS',
+        wallet_id: wallet.id,
+        operation_id: deposit.id,
+        created_at: knex.fn.now(),
+      });
+    });
+    wallet.balance += amount;
+
+    const responseData = {
+      recipient: recipient_name,
+      account: accountNumber,
+      amount: amount,
+      balance: wallet.balance,
+    };
+
+    ResponseHandler.success(
+      res,
+      responseData,
+      200,
+      'Wallet funded successfully'
+    );
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const transferFunds = async (
   req: Request,

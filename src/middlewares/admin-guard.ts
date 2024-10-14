@@ -46,7 +46,7 @@ export const adminUserGuard = async (
   } else if (tokenFromCookie) {
     token = tokenFromCookie;
   } else {
-    return res.status(401).json({ message: 'Authorization token missing' });
+    return res.status(401).json({ message: 'Authorization token missing for admin' });
   }
 
   jwt.verify(token, secretKey, async (err, decoded) => {
